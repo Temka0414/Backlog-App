@@ -1,10 +1,53 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
+  const [user, setUser] = useState<any>(null);
+
+  // 🔐 AUTH STATE CHECK
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+
+    checkUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-950 via-slate-950 to-blue-950 text-white relative overflow-hidden">
+
+      {/* LOGIN / LOGOUT BUTTON */}
+      <div className="absolute top-6 right-6 z-20 flex gap-2">
+            {!user ? (
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all duration-200 text-sm min-w-[90px]"
+              >
+                Login
+              </Link>
+            ) : (
+              <button
+                onClick={() => supabase.auth.signOut()}
+                className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 transition-all duration-200 text-sm min-w-[90px]"
+              >
+                Logout
+              </button>
+            )}
+      </div>
 
       {/* AMBIENT GLOW BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none">
