@@ -1,10 +1,13 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
 /node_modules
 /.pnp
 =======
+=======
+>>>>>>> cc1657cbe6a86a252059d72f867cbf5111ad9bdc
 # Logs
 logs
 *.log
@@ -133,12 +136,16 @@ dist
 .vscode-test
 
 # yarn v3
+<<<<<<< HEAD
 >>>>>>> e214fd15300f9dac7f2c27869be275ad4bec6655
+=======
+>>>>>>> cc1657cbe6a86a252059d72f867cbf5111ad9bdc
 .pnp.*
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
+<<<<<<< HEAD
 <<<<<<< HEAD
 !.yarn/versions
 
@@ -172,10 +179,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 =======
+=======
+>>>>>>> cc1657cbe6a86a252059d72f867cbf5111ad9bdc
 !.yarn/sdks
 !.yarn/versions
 
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+<<<<<<< HEAD
 >>>>>>> e214fd15300f9dac7f2c27869be275ad4bec6655
+=======
+>>>>>>> cc1657cbe6a86a252059d72f867cbf5111ad9bdc
