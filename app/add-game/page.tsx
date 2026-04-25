@@ -14,10 +14,27 @@ export default function AddGame() {
 
   const [category, setCategory] = useState("pirated-indieaa");
   const [name, setName] = useState("");
-  const [image, setImage] = useState("");
+
+  const [user, setUser] = useState<any>(null);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
+
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // -----------------------------
+  // AUTH
+  // -----------------------------
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ?? null);
+    });
+  }, []);
+
+  // -----------------------------
+  // CATEGORY FROM URL
+  // -----------------------------
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const cat = params.get("category");
@@ -27,49 +44,34 @@ export default function AddGame() {
   const categoryLabel =
     CATEGORIES?.[category as keyof typeof CATEGORIES]?.label ?? category;
 
-  async function addGame() {
-  if (!name || uploading || saving) return;
+  // -----------------------------
+  // IMAGE SELECT (NO UPLOAD YET)
+  // -----------------------------
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  setSaving(true);
-
-  const { data: userData } = await supabase.auth.getUser();
-
-  const { error } = await supabase.from("games").insert([
-    {
-      name,
-      image: image || "https://placehold.co/300x400",
-      category,
-      user_id: userData.user?.id,
-    },
-  ]);
-
-  setSaving(false);
-
-  if (!error) {
-    router.push(`/category/${category}`);
-  } else {
-    alert(error.message);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   }
-}
 
+  function removeImage() {
+    setImageFile(null);
+    setImagePreview("");
+  }
 
-async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  setUploading(true);
-
-  try {
-    // 1. compress image first
-    const compressedFile = await imageCompression(file, {
-      maxSizeMB: 0.8,          // max 800KB
-      maxWidthOrHeight: 1200,  // resize large images
+  // -----------------------------
+  // CLOUDINARY UPLOAD (ONLY ON SAVE)
+  // -----------------------------
+  async function uploadToCloudinary(file: File): Promise<string> {
+    const compressed = await imageCompression(file, {
+      maxSizeMB: 0.8,
+      maxWidthOrHeight: 1200,
       useWebWorker: true,
     });
 
-    // 2. upload compressed file
     const formData = new FormData();
-    formData.append("file", compressedFile);
+    formData.append("file", compressed);
     formData.append("upload_preset", "backlog_unsigned");
 
     const res = await fetch(
@@ -82,26 +84,65 @@ async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
 
     const data = await res.json();
 
-    if (data?.secure_url) {
-      setImage(data.secure_url);
-    } else {
-      alert("Upload failed");
+    if (!data?.secure_url) {
+      throw new Error("Upload failed");
     }
-  } catch (err) {
-    console.log(err);
-    alert("Compression/upload failed");
+
+    return data.secure_url;
   }
 
-  setUploading(false);
-}
+  // -----------------------------
+  // SAVE GAME
+  // -----------------------------
+  async function addGame() {
+    if (!name || saving || uploading) return;
 
-function removeImage() {
-  setImage("");
-  setUploading(false);
-}
+    if (!user) {
+      alert("You must be logged in to add a game");
+      return;
+    }
 
+    setSaving(true);
+
+    try {
+      let imageUrl = "https://placehold.co/300x400";
+
+      if (imageFile) {
+        setUploading(true);
+        imageUrl = await uploadToCloudinary(imageFile);
+        setUploading(false);
+      }
+
+      const { error } = await supabase.from("games").insert([
+        {
+          name,
+          image: imageUrl,
+          category,
+          user_id: user.id,
+        },
+      ]);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      router.push(`/category/${category}`);
+    } catch (err) {
+      console.log(err);
+      alert("Failed to save game");
+    } finally {
+      setSaving(false);
+      setUploading(false);
+    }
+  }
+
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-950 via-slate-950 to-blue-950 text-white flex items-center justify-center p-6">
+
       <div className="w-full max-w-md space-y-6">
 
         {/* HEADER */}
@@ -126,29 +167,30 @@ function removeImage() {
             className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 focus:border-blue-400 outline-none"
           />
 
-          {/* UPLOAD / PREVIEW */}
-          {!image ? (
+          {/* IMAGE */}
+          {!imagePreview ? (
             <label className="block border border-dashed border-white/20 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 transition">
-              <input type="file" onChange={handleUpload} className="hidden" />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
 
-              {uploading ? (
-                <p className="text-blue-300">Uploading...</p>
-              ) : (
-                <p className="text-white/60">Click to upload image</p>
-              )}
+              <p className="text-white/60">
+                Click to upload image
+              </p>
             </label>
           ) : (
             <div className="relative flex justify-center">
               <img
-                src={image}
+                src={imagePreview}
                 className="w-32 aspect-[3/4] object-cover rounded-lg shadow-lg"
               />
 
-              {/* REMOVE BUTTON */}
               <button
                 onClick={removeImage}
-                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-400 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
-                title="Remove image"
+                className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center"
               >
                 ✕
               </button>
@@ -167,16 +209,23 @@ function removeImage() {
 
             <button
               onClick={addGame}
-              disabled={!name || uploading || saving}
+              disabled={!user || !name || saving || uploading}
               className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 transition"
             >
-              {saving ? "Saving..." : "Save"}
+              {!user
+                ? "Login required"
+                : saving
+                ? "Saving..."
+                : uploading
+                ? "Uploading..."
+                : "Save"}
             </button>
 
           </div>
 
         </div>
       </div>
+
     </main>
   );
 }
