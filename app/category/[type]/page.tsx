@@ -162,102 +162,102 @@ export default function CategoryPage() {
         {!loading &&
           games.map((g) => (
             <div
-              key={g.id}
-              className="relative group rounded-lg overflow-hidden z-10 shadow-md transition-all duration-500 ease-out
-              hover:shadow-[0_25px_70px_rgba(0,0,0,0.6)]
-              hover:-translate-y-[3px]"
-            >
+  key={g.id}
+  className="relative group rounded-lg overflow-hidden z-10 shadow-md
+             transform-gpu will-change-transform
+             hover:shadow-[0_25px_70px_rgba(0,0,0,0.6)]
+             hover:-translate-y-[3px]"
+>
 
-              {/* DELETE */}
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation();
+  {/* IMAGE WRAPPER (ISOLATION FIX) */}
+  <div className="relative w-full aspect-[3/4] overflow-hidden bg-black isolate">
 
-                  const { error } = await supabase
-                    .from("games")
-                    .delete()
-                    .eq("id", g.id);
+    <img
+      src={g.image}
+      alt={g.name}
+      className="absolute inset-0 w-full h-full object-cover block
+                 scale-[1.001] transform-gpu
+                 transition-transform duration-500 ease-out
+                 group-hover:scale-105"
+    />
 
-                  if (error) {
-                    console.log("DELETE ERROR:", error);
-                    return;
-                  }
+    {/* DARK OVERLAY (INSIDE IMAGE LAYER NOW) */}
+    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition" />
 
-                  fetchGames();
-                }}
-                className="absolute top-2 right-2 z-20 bg-black/70 text-white w-7 h-7 rounded-full
-                           opacity-0 group-hover:opacity-100 transition
-                           flex items-center justify-center hover:bg-red-500"
-              >
-                ✕
-              </button>
+    {/* STATUS */}
+    <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition z-20">
+      {g.status === "completed" && (
+        <div className="bg-green-500/90 text-white text-xs px-2 py-1 rounded shadow-lg backdrop-blur-sm">
+          ✔ 100%
+        </div>
+      )}
 
-              {/* IMAGE */}
-              <div className="relative w-full aspect-[3/4] overflow-hidden">
-                <img
-                  src={g.image}
-                  className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105"
-                />
-              </div>
+      {g.status === "beaten" && (
+        <div className="bg-yellow-400/90 text-black text-xs px-2 py-1 rounded shadow-lg backdrop-blur-sm">
+          🏆 Beaten
+        </div>
+      )}
+    </div>
 
-              {/* STATUS (ONLY ON HOVER) */}
-            <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition z-20">
-              {g.status === "completed" && (
-                <div className="bg-green-500/90 text-white text-xs px-2 py-1 rounded shadow-lg backdrop-blur-sm">
-                  ✔ 100%
-                </div>
-              )}
+    {/* DELETE */}
+    <button
+      onClick={async (e) => {
+        e.stopPropagation();
 
-              {g.status === "beaten" && (
-                <div className="bg-yellow-400/90 text-black text-xs px-2 py-1 rounded shadow-lg backdrop-blur-sm">
-                  🏆 Beaten
-                </div>
-              )}
-            </div>
+        await supabase.from("games").delete().eq("id", g.id);
 
-              {/* HOVER OVERLAY */}
-              <div className="absolute inset-0 flex items-center justify-center 
-                              gap-6 opacity-0 group-hover:opacity-100     
-                              transition bg-black/20">
+        fetchGames();
+      }}
+      className="absolute top-2 right-2 z-20 bg-black/70 text-white w-7 h-7 rounded-full
+                 opacity-0 group-hover:opacity-100 transition
+                 flex items-center justify-center hover:bg-red-500"
+    >
+      ✕
+    </button>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setStatus(g.id, "completed");
-                  }}
-                  className="text-4xl text-white/70 hover:text-green-400 hover:scale-125 transition"
-                >
-                  ✔
-                </button>
+    {/* HOVER CONTROLS */}
+    <div className="absolute inset-0 flex items-center justify-center gap-6
+                    opacity-0 group-hover:opacity-100 transition">
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setStatus(g.id, "beaten");
-                  }}
-                  className="text-4xl text-white/70 hover:text-yellow-400 hover:scale-125 transition"
-                >
-                  🏆
-                </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setStatus(g.id, "completed");
+        }}
+        className="text-4xl text-white/70 hover:text-green-400 hover:scale-125 transition"
+      >
+        ✔
+      </button>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setStatus(g.id, null);
-                  }}
-                  className="text-2xl text-white/50 hover:text-white transition"
-                >
-                  ✕
-                </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setStatus(g.id, "beaten");
+        }}
+        className="text-4xl text-white/70 hover:text-yellow-400 hover:scale-125 transition"
+      >
+        🏆
+      </button>
 
-              </div>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setStatus(g.id, null);
+        }}
+        className="text-2xl text-white/50 hover:text-white transition"
+      >
+        ✕
+      </button>
 
-              {/* NAME */}
-              <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-3 opacity-0 group-hover:opacity-100 transition">
-                <p className="text-sm font-semibold">{g.name}</p>
-              </div>
+    </div>
 
-            </div>
+    {/* NAME BAR */}
+    <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-3 opacity-0 group-hover:opacity-100 transition">
+      <p className="text-sm font-semibold">{g.name}</p>
+    </div>
+
+  </div>
+</div>
           ))}
 
       </div>
